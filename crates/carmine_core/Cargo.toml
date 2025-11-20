@@ -4,4 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bincode = "2.0.1"
+jsonb = "0.5.5"
 redb = { version = "3.1.0", features = ["cache_metrics", "logging"] }
+serde_json = "1.0.145"
+thiserror = "2.0.3"
+
+[dev-dependencies]
+tempfile = "3.23.0"

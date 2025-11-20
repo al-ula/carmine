@@ -1,3 +1,3 @@
-# carmine
+# Carmine KV
 
-A redb powered kv store for the web
+A kv store for the web

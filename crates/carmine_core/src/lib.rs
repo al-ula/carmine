@@ -1,3 +1,11 @@
+pub mod database;
+pub mod error;
+pub mod types;
+pub mod validation;
+
+pub use error::Result;
+pub use types::Number;
+
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
