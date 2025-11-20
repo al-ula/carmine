@@ -1,4 +1,4 @@
-use crate::database::store::Store;
+use crate::store::Store;
 use redb::ReadableDatabase;
 use std::fs::File;
 use tempfile::NamedTempFile;

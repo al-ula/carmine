@@ -1,8 +1,9 @@
 use crate::{
+    error::{Error, Result}
+    ,
     Number,
-    database::{KeyType, KeyTypes},
-    error::{Error, Result},
 };
+use crate::key::KeyType;
 
 pub fn validate_store_name(name: &str) -> Result<String> {
     validate_name(name, "database")?;
@@ -16,7 +17,6 @@ pub fn validate_collection_name(name: &str) -> Result<String> {
     // For now, let's strictly follow the user-facing rules for general validation,
     // and maybe allow a bypass for internal use if needed, or just check the pattern.
 
-    // The spec says:
     // Reserved: Cannot contain :: or __
     // Internal Collections: {collection}::__{suffix}
 

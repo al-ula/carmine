@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use crate::Number;
-use crate::database::store::Store;
-use crate::database::{KeyTypes, ReadOnlyTableHandle, TableHandle, ValueTypes};
+use crate::store::Store;
 use redb::ReadableDatabase;
 use tempfile::NamedTempFile;
+use crate::collection::{CollectionHandle, ReadOnlyCollectionHandle};
+use crate::key::KeyTypes;
+use crate::value::ValueTypes;
 
 #[test]
 fn test_create_collection() {
@@ -19,7 +21,7 @@ fn test_create_collection() {
     {
         let write_handle = collection.write(&write_txn).unwrap();
 
-        if let TableHandle::StrStr(mut table) = write_handle {
+        if let CollectionHandle::StrStr(mut table) = write_handle {
             table.insert("foo", "bar").unwrap();
         } else {
             panic!("Wrong handle type");
@@ -31,7 +33,7 @@ fn test_create_collection() {
     let read_txn = store.handle.begin_read().unwrap();
     let read_handle = collection.read(&read_txn).unwrap();
 
-    if let ReadOnlyTableHandle::StrStr(table) = read_handle {
+    if let ReadOnlyCollectionHandle::StrStr(table) = read_handle {
         let value = table.get("foo").unwrap().unwrap();
         assert_eq!(value.value(), "bar");
     } else {
@@ -80,7 +82,7 @@ fn test_collection_with_number_keys() {
         .unwrap();
 
     let write_txn = store.handle.begin_write().unwrap();
-    if let TableHandle::NumberStr(mut table) = collection.write(&write_txn).unwrap() {
+    if let CollectionHandle::NumberStr(mut table) = collection.write(&write_txn).unwrap() {
         table.insert(Number::from(1.5), "one point five").unwrap();
         table.insert(Number::from(2.7), "two point seven").unwrap();
         table.insert(Number::from(-3.14), "negative pi").unwrap();
@@ -88,7 +90,7 @@ fn test_collection_with_number_keys() {
     write_txn.commit().unwrap();
 
     let read_txn = store.handle.begin_read().unwrap();
-    if let ReadOnlyTableHandle::NumberStr(table) = collection.read(&read_txn).unwrap() {
+    if let ReadOnlyCollectionHandle::NumberStr(table) = collection.read(&read_txn).unwrap() {
         assert_eq!(
             table.get(Number::from(1.5)).unwrap().unwrap().value(),
             "one point five"
@@ -117,14 +119,14 @@ fn test_collection_with_bytes() {
     let data2: &[u8] = b"Hello, World!";
 
     let write_txn = store.handle.begin_write().unwrap();
-    if let TableHandle::StrBytes(mut table) = collection.write(&write_txn).unwrap() {
+    if let CollectionHandle::StrBytes(mut table) = collection.write(&write_txn).unwrap() {
         table.insert("binary", data1).unwrap();
         table.insert("text", data2).unwrap();
     }
     write_txn.commit().unwrap();
 
     let read_txn = store.handle.begin_read().unwrap();
-    if let ReadOnlyTableHandle::StrBytes(table) = collection.read(&read_txn).unwrap() {
+    if let ReadOnlyCollectionHandle::StrBytes(table) = collection.read(&read_txn).unwrap() {
         assert_eq!(table.get("binary").unwrap().unwrap().value(), data1);
         assert_eq!(table.get("text").unwrap().unwrap().value(), data2);
     }
@@ -143,7 +145,7 @@ fn test_collection_persistence() {
             .unwrap();
 
         let write_txn = store.handle.begin_write().unwrap();
-        if let TableHandle::StrInt(mut table) = collection.write(&write_txn).unwrap() {
+        if let CollectionHandle::StrInt(mut table) = collection.write(&write_txn).unwrap() {
             table.insert("count", 42).unwrap();
         }
         write_txn.commit().unwrap();
@@ -157,7 +159,7 @@ fn test_collection_persistence() {
             .unwrap();
 
         let read_txn = store.handle.begin_read().unwrap();
-        if let ReadOnlyTableHandle::StrInt(table) = collection.read(&read_txn).unwrap() {
+        if let ReadOnlyCollectionHandle::StrInt(table) = collection.read(&read_txn).unwrap() {
             assert_eq!(table.get("count").unwrap().unwrap().value(), 42);
         }
     }
@@ -168,7 +170,7 @@ macro_rules! test_kv {
         let coll = $store.collection($name, $k_type, $v_type).unwrap();
         {
             let write_txn = $store.handle.begin_write().unwrap();
-            if let TableHandle::$write_variant(mut table) = coll.write(&write_txn).unwrap() {
+            if let CollectionHandle::$write_variant(mut table) = coll.write(&write_txn).unwrap() {
                 table.insert($k, $v).unwrap();
             } else {
                 panic!("Wrong write handle");
@@ -177,7 +179,7 @@ macro_rules! test_kv {
         }
         {
             let read_txn = $store.handle.begin_read().unwrap();
-            if let ReadOnlyTableHandle::$read_variant(table) = coll.read(&read_txn).unwrap() {
+            if let ReadOnlyCollectionHandle::$read_variant(table) = coll.read(&read_txn).unwrap() {
                 let val = table.get($k).unwrap().unwrap();
                 assert_eq!(val.value(), $v);
             } else {
@@ -375,7 +377,7 @@ fn test_collection_write_one() {
         .unwrap();
 
     let read_txn = store.handle.begin_read().unwrap();
-    if let ReadOnlyTableHandle::StrStr(table) = collection.read(&read_txn).unwrap() {
+    if let ReadOnlyCollectionHandle::StrStr(table) = collection.read(&read_txn).unwrap() {
         let value = table.get("key1").unwrap().unwrap();
         assert_eq!(value.value(), "value1");
     } else {

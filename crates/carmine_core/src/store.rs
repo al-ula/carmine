@@ -1,11 +1,13 @@
 use redb::StorageBackend;
 
 use crate::{
-    Result,
-    database::{KeyTypes, ValueTypes, collection::Collection},
     validation::{validate_collection_name, validate_store_name},
+    Result,
 };
 use std::{fs::File, path::Path};
+use crate::collection::Collection;
+use crate::key::KeyTypes;
+use crate::value::ValueTypes;
 
 #[derive(Debug)]
 pub struct Store {

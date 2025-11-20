@@ -1,9 +1,9 @@
-use crate::database::{
-    KeyTypes, ReadOnlyTableHandle, ValueTypes,
-    store::{ReadOnlyStore, Store},
-};
+use crate::store::{ReadOnlyStore, Store};
 use redb::ReadableDatabase;
 use tempfile::NamedTempFile;
+use crate::collection::ReadOnlyCollectionHandle;
+use crate::key::KeyTypes;
+use crate::value::ValueTypes;
 
 #[test]
 fn test_readonly_store_open() {
@@ -62,7 +62,7 @@ fn test_readonly_store_read_data() {
         {
             let write_handle = collection.write(&write_txn).unwrap();
 
-            if let crate::database::TableHandle::StrStr(mut table) = write_handle {
+            if let crate::collection::CollectionHandle::StrStr(mut table) = write_handle {
                 table.insert("key1", "value1").unwrap();
                 table.insert("key2", "value2").unwrap();
             }
@@ -80,7 +80,7 @@ fn test_readonly_store_read_data() {
     let read_txn = readonly_store.begin_read().unwrap();
     let read_handle = collection.read(&read_txn).unwrap();
 
-    if let ReadOnlyTableHandle::StrStr(table) = read_handle {
+    if let ReadOnlyCollectionHandle::StrStr(table) = read_handle {
         let value1 = table.get("key1").unwrap().unwrap();
         assert_eq!(value1.value(), "value1");
 
