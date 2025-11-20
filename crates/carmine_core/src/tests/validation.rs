@@ -1,5 +1,7 @@
-use crate::database::{KeyTypes, ValueTypes, store::Store};
+use crate::store::Store;
 use tempfile::NamedTempFile;
+use crate::key::KeyTypes;
+use crate::value::ValueTypes;
 
 #[test]
 fn test_invalid_store_name() {

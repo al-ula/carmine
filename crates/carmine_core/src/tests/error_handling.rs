@@ -1,7 +1,10 @@
-use crate::database::store::Store;
+use crate::store::Store;
 use redb::ReadableDatabase;
 use std::path::PathBuf;
 use tempfile::NamedTempFile;
+use crate::collection::ReadOnlyCollectionHandle;
+use crate::key::KeyTypes;
+use crate::value::ValueTypes;
 
 #[test]
 fn test_open_nonexistent_database() {
@@ -16,7 +19,7 @@ fn test_open_nonexistent_database() {
 
 #[test]
 fn test_read_nonexistent_table() {
-    use crate::database::{KeyTypes, ReadOnlyTableHandle, ValueTypes};
+    use crate::database::{};
     use redb::ReadableDatabase;
 
     let tmpfile = NamedTempFile::new().unwrap();
@@ -48,7 +51,7 @@ fn test_invalid_path() {
 
 #[test]
 fn test_collection_read_empty_table() {
-    use crate::database::{KeyTypes, ReadOnlyTableHandle, ValueTypes};
+    use crate::database::{};
     use redb::ReadableDatabase;
 
     let tmpfile = NamedTempFile::new().unwrap();
@@ -67,7 +70,7 @@ fn test_collection_read_empty_table() {
 
     // Read from empty table
     let read_txn = store.begin_read().unwrap();
-    if let ReadOnlyTableHandle::StrStr(table) = collection.read(&read_txn).unwrap() {
+    if let ReadOnlyCollectionHandle::StrStr(table) = collection.read(&read_txn).unwrap() {
         // Getting a non-existent key should return None
         let result = table.get("nonexistent").unwrap();
         assert!(result.is_none());
@@ -76,7 +79,7 @@ fn test_collection_read_empty_table() {
 
 #[test]
 fn test_readonly_store_cannot_write() {
-    use crate::database::store::ReadOnlyStore;
+    use crate::store::ReadOnlyStore;
 
     let tmpfile = NamedTempFile::new().unwrap();
     let path = tmpfile.path();
