@@ -1,9 +1,8 @@
-use std::{
-    panic::{self, Location},
-    sync::PoisonError,
-};
+use std::{panic::Location, sync::PoisonError};
 
 use thiserror::Error;
+
+use crate::{key::KeyTypes, value::ValueTypes};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -15,6 +14,10 @@ pub enum Error {
     Validation(String),
     #[error("Poisoned internal lock: {0}")]
     LockPoisoned(&'static Location<'static>),
+    #[error("Key type mismatch.\nExpected {e:?} got {g:?}")]
+    KeyTypeMismatch { e: KeyTypes, g: KeyTypes },
+    #[error("Value type mismatch.\nExpected {e:?} got {g:?}")]
+    ValueTypeMismatch { e: ValueTypes, g: ValueTypes },
 }
 
 impl From<redb::CommitError> for Error {
@@ -67,7 +70,7 @@ impl From<redb::TableError> for Error {
 
 impl<T> From<PoisonError<T>> for Error {
     fn from(_: PoisonError<T>) -> Error {
-        Error::LockPoisoned(panic::Location::caller())
+        Error::LockPoisoned(Location::caller())
     }
 }
 

@@ -1,13 +1,7 @@
 use redb::StorageBackend;
 
-use crate::{
-    validation::{validate_collection_name, validate_store_name},
-    Result,
-};
+use crate::{Result, validation::validate_store_name};
 use std::{fs::File, path::Path};
-use crate::collection::Collection;
-use crate::key::KeyTypes;
-use crate::value::ValueTypes;
 
 #[derive(Debug)]
 pub struct Store {
@@ -45,20 +39,6 @@ impl Store {
     pub fn builder(name: impl Into<String>) -> Result<Builder> {
         Builder::new(name)
     }
-    pub fn collection(
-        &self,
-        name: impl Into<String>,
-        key_type: KeyTypes,
-        value_type: ValueTypes,
-    ) -> Result<Collection> {
-        let name = name.into();
-        validate_collection_name(&name)?;
-        Ok(Collection {
-            name,
-            key_type,
-            value_type,
-        })
-    }
 }
 
 impl redb::ReadableDatabase for Store {
@@ -81,20 +61,6 @@ impl ReadOnlyStore {
         validate_store_name(&name)?;
         let db = redb::ReadOnlyDatabase::open(path)?;
         Ok(Self { name, handle: db })
-    }
-    pub fn collection(
-        &self,
-        name: impl Into<String>,
-        key_type: KeyTypes,
-        value_type: ValueTypes,
-    ) -> Result<Collection> {
-        let name = name.into();
-        validate_collection_name(&name)?;
-        Ok(Collection {
-            name,
-            key_type,
-            value_type,
-        })
     }
 }
 

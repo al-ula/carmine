@@ -1,6 +1,6 @@
 mod number;
-pub use number::Number;
 use crate::value::{ValueType, ValueTypes};
+pub use number::Number;
 
 #[derive(PartialEq, Debug, Clone, Eq, Hash)]
 pub struct Object(pub Vec<u8>);
@@ -17,9 +17,6 @@ impl ValueType for Object {
         ValueTypes::Object
     }
 
-    fn to_redb_value(&self) -> impl redb::Value {
-        self.0.clone()
-    }
     fn as_bytes(&self) -> Option<&[u8]> {
         Some(&self.0)
     }
@@ -33,9 +30,6 @@ impl ValueType for DynamicValue {
         ValueTypes::Dynamic
     }
 
-    fn to_redb_value(&self) -> impl redb::Value {
-        self.0.clone()
-    }
     fn as_bytes(&self) -> Option<&[u8]> {
         Some(&self.0)
     }

@@ -1,10 +1,12 @@
+pub mod collection;
 pub mod error;
+pub mod key;
+pub mod store;
 pub mod types;
 pub mod validation;
-pub mod collection;
-pub mod store;
-pub mod key;
 pub mod value;
-
 pub use error::Result;
 pub use types::Number;
+
+#[cfg(test)]
+mod tests;
