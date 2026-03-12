@@ -23,6 +23,7 @@ pub enum Value {
     Byte(Vec<u8>),
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum ValueType {
     String,
     Number,

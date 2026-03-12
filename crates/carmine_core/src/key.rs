@@ -2,7 +2,7 @@ use crate::{types::Int, types::Number, value::Value};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Copy, Error)]
 pub enum KeyError {
     #[error("Key is not a string")]
     NotAString,
@@ -19,7 +19,7 @@ pub enum Key {
     Int(Int),
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum KeyType {
     String,
     Number,

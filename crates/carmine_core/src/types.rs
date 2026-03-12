@@ -1,4 +1,4 @@
-use jsonb::{self, from_raw_jsonb, RawJsonb};
+use jsonb::{self, RawJsonb, from_raw_jsonb};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -8,7 +8,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Copy, Error)]
 pub enum TypesError {
     #[error("Failed to deserialize number from jsonb bytes")]
     NumberDeserialize,
