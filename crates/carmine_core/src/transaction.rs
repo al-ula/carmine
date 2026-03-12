@@ -8,6 +8,9 @@ pub use get::*;
 mod put;
 pub use put::*;
 
+mod set;
+pub use set::*;
+
 #[derive(Debug, Error)]
 pub enum TransactionError {
     #[error("Failed to begin read/write transaction: {0}")]
@@ -16,6 +19,8 @@ pub enum TransactionError {
     StorageError(#[from] redb::StorageError),
     #[error("Commit error: {0}")]
     CommitError(#[from] redb::CommitError),
+    #[error("Key already exists")]
+    KeyAlreadyExists,
 }
 
 pub struct Transaction<'a> {

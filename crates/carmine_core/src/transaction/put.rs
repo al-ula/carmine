@@ -1,7 +1,7 @@
 use crate::error::Error;
-use redb::TableDefinition;
+use redb::{ReadableTable, TableDefinition};
 
-use super::Transaction;
+use super::{Transaction, TransactionError};
 
 use crate::{
     key::{Key, KeyType},
@@ -11,15 +11,22 @@ use crate::{
 
 type Result<T> = std::result::Result<T, Error>;
 
-/// Helper macro to perform a typed table insert in redb.
 macro_rules! put_typed {
     ($write_txn:expr, $bucket_name:expr, $key_expr:expr, $val_expr:expr, $KeyRedb:ty, $ValRedb:ty) => {{
         let table: TableDefinition<$KeyRedb, $ValRedb> = TableDefinition::new($bucket_name);
         let mut table_handle = $write_txn
             .open_table(table)
             .map_err(|e| Error::Bucket(e.into()))?;
+        let key = $key_expr;
+        if table_handle
+            .get(&key)
+            .map_err(|e| Error::Transaction(TransactionError::StorageError(e)))?
+            .is_some()
+        {
+            return Err(Error::Transaction(TransactionError::KeyAlreadyExists));
+        }
         table_handle
-            .insert($key_expr, $val_expr)
+            .insert(key, $val_expr)
             .map_err(|e| Error::Transaction(e.into()))?;
     }};
 }
@@ -76,33 +83,114 @@ impl<'a> PutTxn<'a> for Transaction<'a> {
         };
 
         match (self.bucket.key_type, self.bucket.value_type) {
-            // String keys
-            (KeyType::String, ValueType::String) => put_typed!(write_txn, name, key_to_string(key), val_to_string(value), String, String),
-            (KeyType::String, ValueType::Number) => put_typed!(write_txn, name, key_to_string(key), val_to_number(value), String, Number),
-            (KeyType::String, ValueType::Int) => put_typed!(write_txn, name, key_to_string(key), val_to_int(value), String, Int),
-            (KeyType::String, ValueType::Object) => put_typed!(write_txn, name, key_to_string(key), val_to_object(value), String, RawObject),
+            (KeyType::String, ValueType::String) => put_typed!(
+                write_txn,
+                name,
+                key_to_string(key),
+                val_to_string(value),
+                String,
+                String
+            ),
+            (KeyType::String, ValueType::Number) => put_typed!(
+                write_txn,
+                name,
+                key_to_string(key),
+                val_to_number(value),
+                String,
+                Number
+            ),
+            (KeyType::String, ValueType::Int) => put_typed!(
+                write_txn,
+                name,
+                key_to_string(key),
+                val_to_int(value),
+                String,
+                Int
+            ),
+            (KeyType::String, ValueType::Object) => put_typed!(
+                write_txn,
+                name,
+                key_to_string(key),
+                val_to_object(value),
+                String,
+                RawObject
+            ),
             (KeyType::String, ValueType::Byte) => {
                 let k = key_to_string(key);
                 let v = val_to_byte(value);
                 put_typed!(write_txn, name, k, v.as_slice(), String, &[u8]);
             }
 
-            // Number keys
-            (KeyType::Number, ValueType::String) => put_typed!(write_txn, name, key_to_number(key), val_to_string(value), Number, String),
-            (KeyType::Number, ValueType::Number) => put_typed!(write_txn, name, key_to_number(key), val_to_number(value), Number, Number),
-            (KeyType::Number, ValueType::Int) => put_typed!(write_txn, name, key_to_number(key), val_to_int(value), Number, Int),
-            (KeyType::Number, ValueType::Object) => put_typed!(write_txn, name, key_to_number(key), val_to_object(value), Number, RawObject),
+            (KeyType::Number, ValueType::String) => put_typed!(
+                write_txn,
+                name,
+                key_to_number(key),
+                val_to_string(value),
+                Number,
+                String
+            ),
+            (KeyType::Number, ValueType::Number) => put_typed!(
+                write_txn,
+                name,
+                key_to_number(key),
+                val_to_number(value),
+                Number,
+                Number
+            ),
+            (KeyType::Number, ValueType::Int) => put_typed!(
+                write_txn,
+                name,
+                key_to_number(key),
+                val_to_int(value),
+                Number,
+                Int
+            ),
+            (KeyType::Number, ValueType::Object) => put_typed!(
+                write_txn,
+                name,
+                key_to_number(key),
+                val_to_object(value),
+                Number,
+                RawObject
+            ),
             (KeyType::Number, ValueType::Byte) => {
                 let k = key_to_number(key);
                 let v = val_to_byte(value);
                 put_typed!(write_txn, name, k, v.as_slice(), Number, &[u8]);
             }
 
-            // Int keys
-            (KeyType::Int, ValueType::String) => put_typed!(write_txn, name, key_to_int(key), val_to_string(value), Int, String),
-            (KeyType::Int, ValueType::Number) => put_typed!(write_txn, name, key_to_int(key), val_to_number(value), Int, Number),
-            (KeyType::Int, ValueType::Int) => put_typed!(write_txn, name, key_to_int(key), val_to_int(value), Int, Int),
-            (KeyType::Int, ValueType::Object) => put_typed!(write_txn, name, key_to_int(key), val_to_object(value), Int, RawObject),
+            (KeyType::Int, ValueType::String) => put_typed!(
+                write_txn,
+                name,
+                key_to_int(key),
+                val_to_string(value),
+                Int,
+                String
+            ),
+            (KeyType::Int, ValueType::Number) => put_typed!(
+                write_txn,
+                name,
+                key_to_int(key),
+                val_to_number(value),
+                Int,
+                Number
+            ),
+            (KeyType::Int, ValueType::Int) => put_typed!(
+                write_txn,
+                name,
+                key_to_int(key),
+                val_to_int(value),
+                Int,
+                Int
+            ),
+            (KeyType::Int, ValueType::Object) => put_typed!(
+                write_txn,
+                name,
+                key_to_int(key),
+                val_to_object(value),
+                Int,
+                RawObject
+            ),
             (KeyType::Int, ValueType::Byte) => {
                 let k = key_to_int(key);
                 let v = val_to_byte(value);
@@ -110,7 +198,9 @@ impl<'a> PutTxn<'a> for Transaction<'a> {
             }
         }
 
-        write_txn.commit().map_err(|e| Error::Transaction(e.into()))?;
+        write_txn
+            .commit()
+            .map_err(|e| Error::Transaction(e.into()))?;
         Ok(())
     }
 }
