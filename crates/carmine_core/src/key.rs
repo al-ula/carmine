@@ -19,6 +19,23 @@ pub enum Key {
     Int(Int),
 }
 
+#[derive(Debug, Hash, Clone)]
+pub enum KeyType {
+    String,
+    Number,
+    Int,
+}
+
+impl Key {
+    pub fn as_type(&self) -> KeyType {
+        match self {
+            Key::String(_) => KeyType::String,
+            Key::Number(_) => KeyType::Number,
+            Key::Int(_) => KeyType::Int,
+        }
+    }
+}
+
 impl TryFrom<Key> for String {
     type Error = KeyError;
 

@@ -14,18 +14,6 @@ pub enum ValueError {
     InvalidKeyType,
 }
 
-impl From<Number> for Value {
-    fn from(num: Number) -> Self {
-        Value::Number(num)
-    }
-}
-
-impl From<Int> for Value {
-    fn from(num: Int) -> Self {
-        Value::Int(num)
-    }
-}
-
 #[derive(Debug, Hash, Clone, Serialize, Deserialize)]
 pub enum Value {
     String(String),
@@ -33,6 +21,26 @@ pub enum Value {
     Int(Int),
     Object(RawObject),
     Byte(Vec<u8>),
+}
+
+pub enum ValueType {
+    String,
+    Number,
+    Int,
+    Object,
+    Byte,
+}
+
+impl Value {
+    pub fn as_type(&self) -> ValueType {
+        match self {
+            Value::String(_) => ValueType::String,
+            Value::Number(_) => ValueType::Number,
+            Value::Int(_) => ValueType::Int,
+            Value::Object(_) => ValueType::Object,
+            Value::Byte(_) => ValueType::Byte,
+        }
+    }
 }
 
 impl TryFrom<Value> for Key {
@@ -45,6 +53,18 @@ impl TryFrom<Value> for Key {
             Value::Int(i) => Ok(Key::Int(i)),
             _ => Err(ValueError::InvalidKeyType),
         }
+    }
+}
+
+impl From<Number> for Value {
+    fn from(num: Number) -> Self {
+        Value::Number(num)
+    }
+}
+
+impl From<Int> for Value {
+    fn from(num: Int) -> Self {
+        Value::Int(num)
     }
 }
 
