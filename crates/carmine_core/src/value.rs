@@ -1,90 +1,103 @@
-use crate::Number;
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
-pub enum ValueTypes {
-    String,
-    BigInt,
-    Number,
-    Object,
-    Bytes,
-    Dynamic,
+use crate::{
+    key::Key,
+    types::{Int, Number, RawObject},
+};
+
+#[derive(Debug, Error)]
+pub enum ValueError {
+    #[error("Invalid conversion from value")]
+    InvalidConversion,
+    #[error("Value is not a valid key type")]
+    InvalidKeyType,
 }
 
-pub trait ValueType {
-    fn value_type(&self) -> ValueTypes;
-
-    fn as_str(&self) -> Option<&str> {
-        None
-    }
-    fn as_int(&self) -> Option<i64> {
-        None
-    }
-    fn as_number(&self) -> Option<Number> {
-        None
-    }
-    fn as_bytes(&self) -> Option<&[u8]> {
-        None
+impl From<Number> for Value {
+    fn from(num: Number) -> Self {
+        Value::Number(num)
     }
 }
 
-impl ValueType for String {
-    fn value_type(&self) -> ValueTypes {
-        ValueTypes::String
-    }
-
-    fn as_str(&self) -> Option<&str> {
-        Some(self)
+impl From<Int> for Value {
+    fn from(num: Int) -> Self {
+        Value::Int(num)
     }
 }
 
-impl ValueType for i64 {
-    fn value_type(&self) -> ValueTypes {
-        ValueTypes::BigInt
-    }
+#[derive(Debug, Hash, Clone, Serialize, Deserialize)]
+pub enum Value {
+    String(String),
+    Number(Number),
+    Int(Int),
+    Object(RawObject),
+    Byte(Vec<u8>),
+}
 
-    fn as_int(&self) -> Option<i64> {
-        Some(*self)
+impl TryFrom<Value> for Key {
+    type Error = ValueError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::String(s) => Ok(Key::String(s)),
+            Value::Number(n) => Ok(Key::Number(n)),
+            Value::Int(i) => Ok(Key::Int(i)),
+            _ => Err(ValueError::InvalidKeyType),
+        }
     }
 }
 
-impl ValueType for Number {
-    fn value_type(&self) -> ValueTypes {
-        ValueTypes::Number
-    }
+impl TryFrom<Value> for String {
+    type Error = ValueError;
 
-    fn as_number(&self) -> Option<Number> {
-        Some(self.clone())
-    }
-}
-
-impl ValueType for &[u8] {
-    fn value_type(&self) -> ValueTypes {
-        ValueTypes::Bytes
-    }
-
-    fn as_bytes(&self) -> Option<&[u8]> {
-        Some(self)
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::String(s) => Ok(s),
+            _ => Err(ValueError::InvalidConversion),
+        }
     }
 }
 
-impl ValueType for Vec<u8> {
-    fn as_str(&self) -> Option<&str> {
-        None
-    }
+impl TryFrom<Value> for Number {
+    type Error = ValueError;
 
-    fn as_int(&self) -> Option<i64> {
-        None
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Number(n) => Ok(n),
+            _ => Err(ValueError::InvalidConversion),
+        }
     }
+}
 
-    fn as_number(&self) -> Option<Number> {
-        None
+impl TryFrom<Value> for Int {
+    type Error = ValueError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Int(i) => Ok(i),
+            _ => Err(ValueError::InvalidConversion),
+        }
     }
+}
 
-    fn as_bytes(&self) -> Option<&[u8]> {
-        Some(self.as_slice())
+impl TryFrom<Value> for Vec<u8> {
+    type Error = ValueError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Byte(b) => Ok(b),
+            _ => Err(ValueError::InvalidConversion),
+        }
     }
+}
 
-    fn value_type(&self) -> ValueTypes {
-        ValueTypes::Bytes
+impl TryFrom<Value> for RawObject {
+    type Error = ValueError;
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Object(n) => Ok(n),
+            _ => Err(ValueError::InvalidConversion),
+        }
     }
 }

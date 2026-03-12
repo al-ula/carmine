@@ -1,73 +1,68 @@
-use crate::{Number, error::Error, error::Result};
+use crate::{types::Int, types::Number, value::Value};
+use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
-pub enum KeyTypes {
-    String,
-    BigInt,
-    Number,
-    Bytes,
+#[derive(Debug, Error)]
+pub enum KeyError {
+    #[error("Key is not a string")]
+    NotAString,
+    #[error("Key is not a number")]
+    NotANumber,
+    #[error("Key is not an int")]
+    NotAnInt,
 }
 
-pub trait KeyType: redb::Key {
-    fn key_type(&self) -> KeyTypes;
-    fn as_str(&self) -> Result<&str> {
-        Err(Error::KeyTypeMismatch {
-            e: KeyTypes::String,
-            g: self.key_type(),
-        })
-    }
-    fn as_int(&self) -> Result<i64> {
-        Err(Error::KeyTypeMismatch {
-            e: KeyTypes::BigInt,
-            g: self.key_type(),
-        })
-    }
-    fn as_number(&self) -> Result<Number> {
-        Err(Error::KeyTypeMismatch {
-            e: KeyTypes::Number,
-            g: self.key_type(),
-        })
-    }
-    fn as_bytes(&self) -> Result<&[u8]> {
-        Err(Error::KeyTypeMismatch {
-            e: KeyTypes::Bytes,
-            g: self.key_type(),
-        })
+#[derive(Debug, Hash, Clone, Serialize, Deserialize)]
+pub enum Key {
+    String(String),
+    Number(Number),
+    Int(Int),
+}
+
+impl TryFrom<Key> for String {
+    type Error = KeyError;
+
+    fn try_from(key: Key) -> Result<Self, Self::Error> {
+        match key {
+            Key::String(s) => Ok(s),
+            _ => Err(KeyError::NotAString),
+        }
     }
 }
 
-impl KeyType for String {
-    fn key_type(&self) -> KeyTypes {
-        KeyTypes::String
-    }
-    fn as_str(&self) -> Result<&str> {
-        Ok(self)
+impl TryFrom<Key> for Number {
+    type Error = KeyError;
+
+    fn try_from(key: Key) -> Result<Self, Self::Error> {
+        match key {
+            Key::Number(n) => Ok(n),
+            _ => Err(KeyError::NotANumber),
+        }
     }
 }
 
-impl KeyType for i64 {
-    fn key_type(&self) -> KeyTypes {
-        KeyTypes::BigInt
-    }
-    fn as_int(&self) -> Result<i64> {
-        Ok(*self)
+impl TryFrom<Key> for Int {
+    type Error = KeyError;
+
+    fn try_from(key: Key) -> Result<Self, Self::Error> {
+        match key {
+            Key::Int(i) => Ok(i),
+            _ => Err(KeyError::NotAnInt),
+        }
     }
 }
 
-impl KeyType for Number {
-    fn key_type(&self) -> KeyTypes {
-        KeyTypes::Number
-    }
-    fn as_number(&self) -> Result<Number> {
-        Ok(self.clone())
+impl From<Key> for Value {
+    fn from(key: Key) -> Self {
+        match key {
+            Key::String(s) => Value::String(s),
+            Key::Number(n) => Value::Number(n),
+            Key::Int(i) => Value::Int(i),
+        }
     }
 }
-
-impl KeyType for &[u8] {
-    fn key_type(&self) -> KeyTypes {
-        KeyTypes::Bytes
-    }
-    fn as_bytes(&self) -> Result<&[u8]> {
-        Ok(self)
+impl<T: ToString> From<T> for Key {
+    fn from(key: T) -> Self {
+        Key::String(key.to_string())
     }
 }
