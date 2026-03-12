@@ -78,8 +78,20 @@ impl From<Key> for Value {
         }
     }
 }
-impl<T: ToString> From<T> for Key {
-    fn from(key: T) -> Self {
-        Key::String(key.to_string())
+impl From<String> for Key {
+    fn from(key: String) -> Self {
+        Key::String(key)
+    }
+}
+
+impl From<Number> for Key {
+    fn from(key: Number) -> Self {
+        Key::Number(key)
+    }
+}
+
+impl From<Int> for Key {
+    fn from(key: Int) -> Self {
+        Key::Int(key)
     }
 }

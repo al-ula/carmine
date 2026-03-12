@@ -1,8 +1,5 @@
 use redb::{Database, DatabaseError};
-use std::{
-    io,
-    path::{Path, PathBuf},
-};
+use std::{io, path::PathBuf};
 use thiserror::Error;
 
 #[derive(Debug, Error)]

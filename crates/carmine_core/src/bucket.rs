@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{error::Error, key::KeyType, value::ValueType};
+use crate::{key::KeyType, value::ValueType};
 
 #[derive(Debug, Clone)]
 pub struct Bucket {
