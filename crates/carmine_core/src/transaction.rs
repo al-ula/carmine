@@ -5,12 +5,17 @@ use crate::{bucket::Bucket, tub::Tub};
 mod get;
 pub use get::*;
 
+mod put;
+pub use put::*;
+
 #[derive(Debug, Error)]
 pub enum TransactionError {
-    #[error("Failed to begin read transaction: {0}")]
+    #[error("Failed to begin read/write transaction: {0}")]
     RedbTransactionError(#[from] redb::TransactionError),
     #[error("Storage error: {0}")]
     StorageError(#[from] redb::StorageError),
+    #[error("Commit error: {0}")]
+    CommitError(#[from] redb::CommitError),
 }
 
 pub struct Transaction<'a> {
