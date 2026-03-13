@@ -28,7 +28,7 @@ macro_rules! get_typed {
         let table: TableDefinition<$KeyRedb, $ValRedb> = TableDefinition::new($bucket_name);
         let table_handle = $read_txn
             .open_table(table)
-            .map_err(|e| Error::Bucket(e.into()))?;
+            .map_err(|e| Error::Shelf(e.into()))?;
         let search_key = $key_conv($key.clone());
         let value = table_handle
             .get(search_key)
@@ -46,7 +46,7 @@ macro_rules! batch_get_typed {
         let table: TableDefinition<$KeyRedb, $ValRedb> = TableDefinition::new($bucket_name);
         let table_handle = $read_txn
             .open_table(table)
-            .map_err(|e| Error::Bucket(e.into()))?;
+            .map_err(|e| Error::Shelf(e.into()))?;
 
         let mut result_vec: Vec<std::result::Result<Option<_>, BatchItemError>> =
             Vec::with_capacity($keys.len());
@@ -83,12 +83,12 @@ impl<'a> GetTxn<'a> for Transaction<'a> {
     fn get(&self, key: &Key) -> Result<Option<Value>> {
         self.validate_key_type(key).map_err(Error::Transaction)?;
 
-        let database = self.tub.open().map_err(|e| Error::Tub(e.into()))?;
+        let database = self.cabinet.open().map_err(|e| Error::Cabinet(e.into()))?;
         let read_txn = database
             .begin_read()
             .map_err(|e| Error::Transaction(e.into()))?;
 
-        let name = &self.bucket.name;
+        let name = &self.shelf.name;
 
         let key_to_string = |k: Key| -> String {
             k.try_into()
@@ -105,7 +105,7 @@ impl<'a> GetTxn<'a> for Transaction<'a> {
             *i
         };
 
-        match (self.bucket.key_type, self.bucket.value_type) {
+        match (self.shelf.key_type, self.shelf.value_type) {
             // String keys
             (KeyType::String, ValueType::String) => {
                 get_typed!(
@@ -244,7 +244,7 @@ impl<'a> GetTxn<'a> for Transaction<'a> {
     }
 
     fn batch_get(&self, keys: &[Key]) -> Result<ValueRetVec> {
-        let bucket_key_type = self.bucket.key_type;
+        let bucket_key_type = self.shelf.key_type;
 
         let errors: Vec<Option<BatchItemError>> = keys
             .iter()
@@ -260,12 +260,12 @@ impl<'a> GetTxn<'a> for Transaction<'a> {
             })
             .collect();
 
-        let database = self.tub.open().map_err(|e| Error::Tub(e.into()))?;
+        let database = self.cabinet.open().map_err(|e| Error::Cabinet(e.into()))?;
         let read_txn = database
             .begin_read()
             .map_err(|e| Error::Transaction(e.into()))?;
 
-        let name = &self.bucket.name;
+        let name = &self.shelf.name;
 
         // Use safe conversion closures that return Results so we can cleanly fail on bad types
         // without panicking, leaving the result vector slot as `None`
@@ -278,7 +278,7 @@ impl<'a> GetTxn<'a> for Transaction<'a> {
             i.map(|v| *v)
         };
 
-        match (self.bucket.key_type, self.bucket.value_type) {
+        match (self.shelf.key_type, self.shelf.value_type) {
             // String keys
             (KeyType::String, ValueType::String) => {
                 batch_get_typed!(

@@ -1,4 +1,4 @@
-use jsonb::{self, RawJsonb, from_raw_jsonb};
+use jsonb::{self, from_raw_jsonb, RawJsonb};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

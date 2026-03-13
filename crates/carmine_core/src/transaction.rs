@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{bucket::Bucket, tub::Tub};
+use crate::{cabinet::Cabinet, shelf::Shelf};
 
 mod get;
 pub use get::*;
@@ -34,20 +34,20 @@ pub enum TransactionError {
 }
 
 pub struct Transaction<'a> {
-    tub: &'a Tub,
-    bucket: &'a Bucket,
+    cabinet: &'a Cabinet,
+    shelf: &'a Shelf,
 }
 
 impl<'a> Transaction<'a> {
-    pub fn new(tub: &'a Tub, bucket: &'a Bucket) -> Self {
-        Self { tub, bucket }
+    pub fn new(cabinet: &'a Cabinet, shelf: &'a Shelf) -> Self {
+        Self { cabinet, shelf }
     }
 
     pub fn validate_key_type(&self, key: &crate::key::Key) -> Result<(), TransactionError> {
         let actual = key.as_type();
-        if actual != self.bucket.key_type {
+        if actual != self.shelf.key_type {
             return Err(TransactionError::KeyTypeMismatch {
-                expected: self.bucket.key_type,
+                expected: self.shelf.key_type,
                 actual,
             });
         }
@@ -56,9 +56,9 @@ impl<'a> Transaction<'a> {
 
     pub fn validate_value_type(&self, value: &crate::value::Value) -> Result<(), TransactionError> {
         let actual = value.as_type();
-        if actual != self.bucket.value_type {
+        if actual != self.shelf.value_type {
             return Err(TransactionError::ValueTypeMismatch {
-                expected: self.bucket.value_type,
+                expected: self.shelf.value_type,
                 actual,
             });
         }

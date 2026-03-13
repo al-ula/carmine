@@ -13,10 +13,10 @@ pub enum Error {
     Value(#[from] ValueError),
     #[error("Types error: {0}")]
     Types(#[from] TypesError),
-    #[error("Bucket error: {0}")]
-    Bucket(#[from] crate::bucket::BucketError),
-    #[error("Tub error: {0}")]
-    Tub(#[from] crate::tub::TubError),
+    #[error("Shelf error: {0}")]
+    Shelf(#[from] crate::shelf::ShelfError),
+    #[error("Cabinet error: {0}")]
+    Cabinet(#[from] crate::cabinet::CabinetError),
     #[error("Transaction error: {0}")]
     Transaction(#[from] TransactionError),
 }

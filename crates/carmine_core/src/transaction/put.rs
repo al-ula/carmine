@@ -16,7 +16,7 @@ macro_rules! put_typed {
         let table: TableDefinition<$KeyRedb, $ValRedb> = TableDefinition::new($bucket_name);
         let mut table_handle = $write_txn
             .open_table(table)
-            .map_err(|e| Error::Bucket(e.into()))?;
+            .map_err(|e| Error::Shelf(e.into()))?;
         let key = $key_expr;
         if table_handle
             .get(&key)
@@ -38,7 +38,7 @@ macro_rules! batch_put_typed {
         let table: TableDefinition<$KeyRedb, $ValRedb> = TableDefinition::new($bucket_name);
         let mut table_handle = $write_txn
             .open_table(table)
-            .map_err(|e| Error::Bucket(e.into()))?;
+            .map_err(|e| Error::Shelf(e.into()))?;
 
         let mut results = Vec::with_capacity($entries.len());
 
@@ -85,7 +85,7 @@ macro_rules! batch_put_typed_bytes {
         let table: TableDefinition<$KeyRedb, &[u8]> = TableDefinition::new($bucket_name);
         let mut table_handle = $write_txn
             .open_table(table)
-            .map_err(|e| Error::Bucket(e.into()))?;
+            .map_err(|e| Error::Shelf(e.into()))?;
 
         let mut results = Vec::with_capacity($entries.len());
 
@@ -139,12 +139,12 @@ impl<'a> PutTxn<'a> for Transaction<'a> {
             return Err(Error::Transaction(e));
         }
 
-        let database = self.tub.open().map_err(|e| Error::Tub(e.into()))?;
+        let database = self.cabinet.open().map_err(|e| Error::Cabinet(e.into()))?;
         let write_txn = database
             .begin_write()
             .map_err(|e| Error::Transaction(e.into()))?;
 
-        let name = &self.bucket.name;
+        let name = &self.shelf.name;
 
         let key_to_string = |k: Key| -> String {
             k.try_into()
@@ -184,7 +184,7 @@ impl<'a> PutTxn<'a> for Transaction<'a> {
                 .unwrap_or_else(|_| unreachable!("Validated value_type guarantees a Byte value"))
         };
 
-        match (self.bucket.key_type, self.bucket.value_type) {
+        match (self.shelf.key_type, self.shelf.value_type) {
             (KeyType::String, ValueType::String) => put_typed!(
                 write_txn,
                 name,
@@ -307,8 +307,8 @@ impl<'a> PutTxn<'a> for Transaction<'a> {
     }
 
     fn batch_put(&self, entries: &[(Key, Value)]) -> Result<Vec<Result<()>>> {
-        let bucket_key_type = self.bucket.key_type;
-        let bucket_value_type = self.bucket.value_type;
+        let bucket_key_type = self.shelf.key_type;
+        let bucket_value_type = self.shelf.value_type;
 
         let mut validation_errors: Vec<Option<Error>> = Vec::with_capacity(entries.len());
         for (key, value) in entries.iter() {
@@ -348,12 +348,12 @@ impl<'a> PutTxn<'a> for Transaction<'a> {
             return Ok(results);
         }
 
-        let database = self.tub.open().map_err(|e| Error::Tub(e.into()))?;
+        let database = self.cabinet.open().map_err(|e| Error::Cabinet(e.into()))?;
         let write_txn = database
             .begin_write()
             .map_err(|e| Error::Transaction(e.into()))?;
 
-        let name = &self.bucket.name;
+        let name = &self.shelf.name;
 
         let safe_key_to_string =
             |k: Key| -> std::result::Result<String, crate::key::KeyError> { k.try_into() };
@@ -377,7 +377,7 @@ impl<'a> PutTxn<'a> for Transaction<'a> {
         let safe_val_to_byte =
             |v: Value| -> std::result::Result<Vec<u8>, crate::value::ValueError> { v.try_into() };
 
-        let results: Vec<Result<()>> = match (self.bucket.key_type, self.bucket.value_type) {
+        let results: Vec<Result<()>> = match (self.shelf.key_type, self.shelf.value_type) {
             (KeyType::String, ValueType::String) => batch_put_typed!(
                 write_txn,
                 name,
