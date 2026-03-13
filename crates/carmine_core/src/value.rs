@@ -6,12 +6,24 @@ use crate::{
     types::{Int, Number, RawObject},
 };
 
+pub type ResultString = std::result::Result<Option<String>, BatchItemError>;
+pub type ResultNumber = std::result::Result<Option<Number>, BatchItemError>;
+pub type ResultInt = std::result::Result<Option<Int>, BatchItemError>;
+pub type ResultObject = std::result::Result<Option<RawObject>, BatchItemError>;
+pub type ResultByte = std::result::Result<Option<Vec<u8>>, BatchItemError>;
+
 #[derive(Debug, Error)]
 pub enum ValueError {
     #[error("Invalid conversion from value")]
     InvalidConversion,
     #[error("Value is not a valid key type")]
     InvalidKeyType,
+}
+
+#[derive(Debug, Error, Clone)]
+pub enum BatchItemError {
+    #[error("Key type mismatch: expected {expected}, got {actual}")]
+    TypeMismatch { expected: String, actual: String },
 }
 
 #[derive(Debug, Hash, Clone, Serialize, Deserialize)]
@@ -23,7 +35,7 @@ pub enum Value {
     Byte(Vec<u8>),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ValueType {
     String,
     Number,
@@ -143,11 +155,11 @@ impl TryFrom<Value> for RawObject {
 
 #[derive(Debug, Clone)]
 pub enum ValueRetVec {
-    String(Vec<Option<String>>),
-    Number(Vec<Option<Number>>),
-    Int(Vec<Option<Int>>),
-    Object(Vec<Option<RawObject>>),
-    Byte(Vec<Option<Vec<u8>>>),
+    String(Vec<ResultString>),
+    Number(Vec<ResultNumber>),
+    Int(Vec<ResultInt>),
+    Object(Vec<ResultObject>),
+    Byte(Vec<ResultByte>),
 }
 
 impl ValueRetVec {
@@ -162,11 +174,11 @@ impl ValueRetVec {
     }
     pub fn new(value_type: ValueType, size: usize) -> Self {
         match value_type {
-            ValueType::String => ValueRetVec::String(vec![None; size]),
-            ValueType::Number => ValueRetVec::Number(vec![None; size]),
-            ValueType::Int => ValueRetVec::Int(vec![None; size]),
-            ValueType::Object => ValueRetVec::Object(vec![None; size]),
-            ValueType::Byte => ValueRetVec::Byte(vec![None; size]),
+            ValueType::String => ValueRetVec::String(vec![Ok(None); size]),
+            ValueType::Number => ValueRetVec::Number(vec![Ok(None); size]),
+            ValueType::Int => ValueRetVec::Int(vec![Ok(None); size]),
+            ValueType::Object => ValueRetVec::Object(vec![Ok(None); size]),
+            ValueType::Byte => ValueRetVec::Byte(vec![Ok(None); size]),
         }
     }
     pub fn len(&self) -> usize {
@@ -179,73 +191,196 @@ impl ValueRetVec {
         }
     }
 
-    pub fn get(&self, index: usize) -> Option<Value> {
+    pub fn get(&self, index: usize) -> Result<Option<Value>, BatchItemError> {
         match self {
-            ValueRetVec::String(s) => s
-                .get(index)
-                .and_then(|opt| opt.as_ref().map(|v| Value::String(v.clone()))),
-            ValueRetVec::Number(n) => n
-                .get(index)
-                .and_then(|opt| opt.as_ref().map(|v| Value::Number(v.clone()))),
-            ValueRetVec::Int(i) => i
-                .get(index)
-                .and_then(|opt| opt.as_ref().map(|v| Value::Int(*v))),
-            ValueRetVec::Object(o) => o
-                .get(index)
-                .and_then(|opt| opt.as_ref().map(|v| Value::Object(v.clone()))),
-            ValueRetVec::Byte(b) => b
-                .get(index)
-                .and_then(|opt| opt.as_ref().map(|v| Value::Byte(v.clone()))),
+            ValueRetVec::String(s) => {
+                let res = s.get(index).ok_or_else(|| BatchItemError::TypeMismatch {
+                    expected: "String".to_string(),
+                    actual: "index out of bounds".to_string(),
+                })?;
+                match res {
+                    Ok(opt) => Ok(opt.as_ref().map(|v| Value::String(v.clone()))),
+                    Err(e) => Err(e.clone()),
+                }
+            }
+            ValueRetVec::Number(n) => {
+                let res = n.get(index).ok_or_else(|| BatchItemError::TypeMismatch {
+                    expected: "Number".to_string(),
+                    actual: "index out of bounds".to_string(),
+                })?;
+                match res {
+                    Ok(opt) => Ok(opt.as_ref().map(|v| Value::Number(v.clone()))),
+                    Err(e) => Err(e.clone()),
+                }
+            }
+            ValueRetVec::Int(i) => {
+                let res = i.get(index).ok_or_else(|| BatchItemError::TypeMismatch {
+                    expected: "Int".to_string(),
+                    actual: "index out of bounds".to_string(),
+                })?;
+                match res {
+                    Ok(opt) => Ok(opt.as_ref().map(|v| Value::Int(*v))),
+                    Err(e) => Err(e.clone()),
+                }
+            }
+            ValueRetVec::Object(o) => {
+                let res = o.get(index).ok_or_else(|| BatchItemError::TypeMismatch {
+                    expected: "Object".to_string(),
+                    actual: "index out of bounds".to_string(),
+                })?;
+                match res {
+                    Ok(opt) => Ok(opt.as_ref().map(|v| Value::Object(v.clone()))),
+                    Err(e) => Err(e.clone()),
+                }
+            }
+            ValueRetVec::Byte(b) => {
+                let res = b.get(index).ok_or_else(|| BatchItemError::TypeMismatch {
+                    expected: "Byte".to_string(),
+                    actual: "index out of bounds".to_string(),
+                })?;
+                match res {
+                    Ok(opt) => Ok(opt.as_ref().map(|v| Value::Byte(v.clone()))),
+                    Err(e) => Err(e.clone()),
+                }
+            }
         }
     }
-    pub fn set(&mut self, index: usize, value: Option<Value>) -> Result<(), ValueError> {
+    pub fn set(
+        &mut self,
+        index: usize,
+        value: Result<Option<Value>, BatchItemError>,
+    ) -> Result<(), ValueError> {
         match (self, value) {
-            (ValueRetVec::String(s), Some(Value::String(v))) => {
+            (ValueRetVec::String(s), Ok(Some(Value::String(v)))) => {
                 if index < s.len() {
-                    s[index] = Some(v);
+                    s[index] = Ok(Some(v));
                     Ok(())
                 } else {
                     Err(ValueError::InvalidConversion)
                 }
             }
-            (ValueRetVec::Number(n), Some(Value::Number(v))) => {
+            (ValueRetVec::Number(n), Ok(Some(Value::Number(v)))) => {
                 if index < n.len() {
-                    n[index] = Some(v);
+                    n[index] = Ok(Some(v));
                     Ok(())
                 } else {
                     Err(ValueError::InvalidConversion)
                 }
             }
-            (ValueRetVec::Int(i), Some(Value::Int(v))) => {
+            (ValueRetVec::Int(i), Ok(Some(Value::Int(v)))) => {
                 if index < i.len() {
-                    i[index] = Some(v);
+                    i[index] = Ok(Some(v));
                     Ok(())
                 } else {
                     Err(ValueError::InvalidConversion)
                 }
             }
-            (ValueRetVec::Object(o), Some(Value::Object(v))) => {
+            (ValueRetVec::Object(o), Ok(Some(Value::Object(v)))) => {
                 if index < o.len() {
-                    o[index] = Some(v);
+                    o[index] = Ok(Some(v));
                     Ok(())
                 } else {
                     Err(ValueError::InvalidConversion)
                 }
             }
-            (ValueRetVec::Byte(b), Some(Value::Byte(v))) => {
+            (ValueRetVec::Byte(b), Ok(Some(Value::Byte(v)))) => {
                 if index < b.len() {
-                    b[index] = Some(v);
+                    b[index] = Ok(Some(v));
                     Ok(())
                 } else {
                     Err(ValueError::InvalidConversion)
                 }
+            }
+            (ValueRetVec::String(s), Ok(None)) => {
+                if index < s.len() {
+                    s[index] = Ok(None);
+                    Ok(())
+                } else {
+                    Err(ValueError::InvalidConversion)
+                }
+            }
+            (ValueRetVec::Number(n), Ok(None)) => {
+                if index < n.len() {
+                    n[index] = Ok(None);
+                    Ok(())
+                } else {
+                    Err(ValueError::InvalidConversion)
+                }
+            }
+            (ValueRetVec::Int(i), Ok(None)) => {
+                if index < i.len() {
+                    i[index] = Ok(None);
+                    Ok(())
+                } else {
+                    Err(ValueError::InvalidConversion)
+                }
+            }
+            (ValueRetVec::Object(o), Ok(None)) => {
+                if index < o.len() {
+                    o[index] = Ok(None);
+                    Ok(())
+                } else {
+                    Err(ValueError::InvalidConversion)
+                }
+            }
+            (ValueRetVec::Byte(b), Ok(None)) => {
+                if index < b.len() {
+                    b[index] = Ok(None);
+                    Ok(())
+                } else {
+                    Err(ValueError::InvalidConversion)
+                }
+            }
+            (v, Err(e)) => {
+                let idx = match v {
+                    ValueRetVec::String(s) => {
+                        if index < s.len() {
+                            s[index] = Err(e.clone());
+                            return Ok(());
+                        } else {
+                            return Err(ValueError::InvalidConversion);
+                        }
+                    }
+                    ValueRetVec::Number(n) => {
+                        if index < n.len() {
+                            n[index] = Err(e.clone());
+                            return Ok(());
+                        } else {
+                            return Err(ValueError::InvalidConversion);
+                        }
+                    }
+                    ValueRetVec::Int(i) => {
+                        if index < i.len() {
+                            i[index] = Err(e.clone());
+                            return Ok(());
+                        } else {
+                            return Err(ValueError::InvalidConversion);
+                        }
+                    }
+                    ValueRetVec::Object(o) => {
+                        if index < o.len() {
+                            o[index] = Err(e.clone());
+                            return Ok(());
+                        } else {
+                            return Err(ValueError::InvalidConversion);
+                        }
+                    }
+                    ValueRetVec::Byte(b) => {
+                        if index < b.len() {
+                            b[index] = Err(e.clone());
+                            return Ok(());
+                        } else {
+                            return Err(ValueError::InvalidConversion);
+                        }
+                    }
+                };
             }
             _ => Err(ValueError::InvalidConversion),
         }
     }
 }
 
-impl TryFrom<ValueRetVec> for Vec<Option<String>> {
+impl TryFrom<ValueRetVec> for Vec<Result<Option<String>, BatchItemError>> {
     type Error = ValueError;
 
     fn try_from(value: ValueRetVec) -> Result<Self, Self::Error> {
@@ -258,14 +393,14 @@ impl TryFrom<ValueRetVec> for Vec<Option<String>> {
 
 impl From<Vec<Option<String>>> for ValueRetVec {
     fn from(vec: Vec<Option<String>>) -> Self {
-        ValueRetVec::String(vec)
+        ValueRetVec::String(vec.into_iter().map(Ok).collect())
     }
 }
 
-impl TryFrom<ValueRetVec> for Vec<Option<Number>> {
+impl TryFrom<ValueRetVec> for Vec<std::result::Result<Option<Number>, BatchItemError>> {
     type Error = ValueError;
 
-    fn try_from(value: ValueRetVec) -> Result<Self, Self::Error> {
+    fn try_from(value: ValueRetVec) -> std::result::Result<Self, Self::Error> {
         match value {
             ValueRetVec::Number(n) => Ok(n),
             _ => Err(ValueError::InvalidConversion),
@@ -275,14 +410,14 @@ impl TryFrom<ValueRetVec> for Vec<Option<Number>> {
 
 impl From<Vec<Option<Number>>> for ValueRetVec {
     fn from(vec: Vec<Option<Number>>) -> Self {
-        ValueRetVec::Number(vec)
+        ValueRetVec::Number(vec.into_iter().map(Ok).collect())
     }
 }
 
-impl TryFrom<ValueRetVec> for Vec<Option<Int>> {
+impl TryFrom<ValueRetVec> for Vec<ResultInt> {
     type Error = ValueError;
 
-    fn try_from(value: ValueRetVec) -> Result<Self, Self::Error> {
+    fn try_from(value: ValueRetVec) -> std::result::Result<Self, Self::Error> {
         match value {
             ValueRetVec::Int(i) => Ok(i),
             _ => Err(ValueError::InvalidConversion),
@@ -292,14 +427,14 @@ impl TryFrom<ValueRetVec> for Vec<Option<Int>> {
 
 impl From<Vec<Option<Int>>> for ValueRetVec {
     fn from(vec: Vec<Option<Int>>) -> Self {
-        ValueRetVec::Int(vec)
+        ValueRetVec::Int(vec.into_iter().map(Ok).collect())
     }
 }
 
-impl TryFrom<ValueRetVec> for Vec<Option<RawObject>> {
+impl TryFrom<ValueRetVec> for Vec<ResultObject> {
     type Error = ValueError;
 
-    fn try_from(value: ValueRetVec) -> Result<Self, Self::Error> {
+    fn try_from(value: ValueRetVec) -> std::result::Result<Self, Self::Error> {
         match value {
             ValueRetVec::Object(o) => Ok(o),
             _ => Err(ValueError::InvalidConversion),
@@ -309,14 +444,14 @@ impl TryFrom<ValueRetVec> for Vec<Option<RawObject>> {
 
 impl From<Vec<Option<RawObject>>> for ValueRetVec {
     fn from(vec: Vec<Option<RawObject>>) -> Self {
-        ValueRetVec::Object(vec)
+        ValueRetVec::Object(vec.into_iter().map(Ok).collect())
     }
 }
 
-impl TryFrom<ValueRetVec> for Vec<Option<Vec<u8>>> {
+impl TryFrom<ValueRetVec> for Vec<ResultByte> {
     type Error = ValueError;
 
-    fn try_from(value: ValueRetVec) -> Result<Self, Self::Error> {
+    fn try_from(value: ValueRetVec) -> std::result::Result<Self, Self::Error> {
         match value {
             ValueRetVec::Byte(b) => Ok(b),
             _ => Err(ValueError::InvalidConversion),
@@ -326,6 +461,6 @@ impl TryFrom<ValueRetVec> for Vec<Option<Vec<u8>>> {
 
 impl From<Vec<Option<Vec<u8>>>> for ValueRetVec {
     fn from(vec: Vec<Option<Vec<u8>>>) -> Self {
-        ValueRetVec::Byte(vec)
+        ValueRetVec::Byte(vec.into_iter().map(Ok).collect())
     }
 }

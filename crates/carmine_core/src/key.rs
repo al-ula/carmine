@@ -19,7 +19,7 @@ pub enum Key {
     Int(Int),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KeyType {
     String,
     Number,
