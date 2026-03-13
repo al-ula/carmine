@@ -26,7 +26,7 @@ pub enum BatchItemError {
     TypeMismatch { expected: String, actual: String },
 }
 
-#[derive(Debug, Hash, Clone, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Value {
     String(String),
     Number(Number),

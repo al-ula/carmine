@@ -1,6 +1,8 @@
 use thiserror::Error;
 
 use crate::{key::KeyType, value::ValueType};
+pub mod read;
+pub mod write;
 
 #[derive(Debug, Clone)]
 pub struct Shelf {
