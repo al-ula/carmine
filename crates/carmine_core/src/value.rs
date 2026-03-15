@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
@@ -26,7 +25,7 @@ pub enum BatchItemError {
     TypeMismatch { expected: String, actual: String },
 }
 
-#[derive(Debug, Hash, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, PartialEq)]
 pub enum Value {
     String(String),
     Number(Number),

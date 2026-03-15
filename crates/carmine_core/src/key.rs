@@ -1,5 +1,4 @@
 use crate::{types::Int, types::Number, value::Value};
-use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, Error)]
@@ -12,7 +11,7 @@ pub enum KeyError {
     NotAnInt,
 }
 
-#[derive(Debug, Hash, Clone, Serialize, Deserialize)]
+#[derive(Debug, Hash, Clone, PartialEq)]
 pub enum Key {
     String(String),
     Number(Number),
@@ -78,6 +77,7 @@ impl From<Key> for Value {
         }
     }
 }
+
 impl From<String> for Key {
     fn from(key: String) -> Self {
         Key::String(key)

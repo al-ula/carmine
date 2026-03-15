@@ -108,6 +108,24 @@ impl DerefMut for Int {
     }
 }
 
+impl From<i64> for Int {
+    fn from(i: i64) -> Self {
+        Int(i)
+    }
+}
+
+impl From<jsonb::Number> for Number {
+    fn from(n: jsonb::Number) -> Self {
+        Number(n)
+    }
+}
+
+impl From<Vec<u8>> for RawObject {
+    fn from(v: Vec<u8>) -> Self {
+        RawObject(v)
+    }
+}
+
 impl redb::Value for Number {
     type SelfType<'a>
         = Number

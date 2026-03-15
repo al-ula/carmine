@@ -85,20 +85,16 @@ impl<'a> TransactionOld<'a> {
 
 #[inline(always)]
 pub fn begin_read(cabinet: &Cabinet) -> Result<redb::ReadTransaction, crate::error::Error> {
-    let database = cabinet
-        .open()
-        .map_err(|e| crate::error::Error::Cabinet(e.into()))?;
-    database
+    cabinet
+        .database()
         .begin_read()
         .map_err(|e| crate::error::Error::Transaction(e.into()))
 }
 
 #[inline(always)]
 pub fn begin_write(cabinet: &Cabinet) -> Result<redb::WriteTransaction, crate::error::Error> {
-    let database = cabinet
-        .open()
-        .map_err(|e| crate::error::Error::Cabinet(e.into()))?;
-    database
+    cabinet
+        .database()
         .begin_write()
         .map_err(|e| crate::error::Error::Transaction(e.into()))
 }
@@ -111,7 +107,7 @@ pub fn commit_transaction(tx: redb::WriteTransaction) -> Result<(), TransactionE
 
 pub trait Readable {
     fn get(&self, tx: &redb::ReadTransaction, key: &Key)
-    -> Result<Option<Value>, TransactionError>;
+        -> Result<Option<Value>, TransactionError>;
     fn get_all(&self, tx: &redb::ReadTransaction) -> Result<Vec<(Key, Value)>, TransactionError>;
     fn keys(&self, tx: &redb::ReadTransaction) -> Result<Vec<Key>, TransactionError>;
     fn values(&self, tx: &redb::ReadTransaction) -> Result<Vec<Value>, TransactionError>;

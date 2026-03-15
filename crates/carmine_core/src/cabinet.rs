@@ -1,6 +1,10 @@
-use redb::{Database, DatabaseError};
+use redb::{Builder, Database, DatabaseError};
+use std::sync::Arc;
 use std::{io, path::PathBuf};
 use thiserror::Error;
+
+/// Default page cache size for cabinet databases (64 MB).
+pub const DEFAULT_CACHE_SIZE: usize = 64 * 1024 * 1024;
 
 #[derive(Debug, Error)]
 pub enum CabinetError {
@@ -10,32 +14,37 @@ pub enum CabinetError {
     Database(#[from] DatabaseError),
 }
 type Error = CabinetError;
+
 #[derive(Debug, Clone)]
 pub struct Cabinet {
-    pub id: String,
+    pub id: u64,
     pub name: String,
+    pub path: PathBuf,
+    db: Arc<Database>,
 }
 
 impl Cabinet {
-    pub fn new(id: String, name: String) -> Self {
-        Self { id, name }
-    }
-    pub fn create(name: String) -> Result<Self, Error> {
-        let (id, path) = register_cabinet(name.clone())?;
-        let cabinet = Self { id, name };
-        let _database = Database::create(path)?;
-        Ok(cabinet)
+    pub fn create(id: u64, name: String, path: PathBuf, cache_size: usize) -> Result<Self, Error> {
+        let db = Builder::new().set_cache_size(cache_size).create(&path)?;
+        Ok(Self {
+            id,
+            name,
+            path,
+            db: Arc::new(db),
+        })
     }
 
-    pub fn open(&self) -> Result<Database, DatabaseError> {
-        let path = get_cabinet_path(self);
-        Database::open(&path)
+    pub fn open(id: u64, name: String, path: PathBuf, cache_size: usize) -> Result<Self, Error> {
+        let db = Builder::new().set_cache_size(cache_size).open(&path)?;
+        Ok(Self {
+            id,
+            name,
+            path,
+            db: Arc::new(db),
+        })
     }
-}
 
-fn register_cabinet(name: String) -> Result<(String, PathBuf), io::Error> {
-    todo!()
-}
-fn get_cabinet_path(cabinet: &Cabinet) -> PathBuf {
-    todo!()
+    pub fn database(&self) -> &Database {
+        &self.db
+    }
 }
